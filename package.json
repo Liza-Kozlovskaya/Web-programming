@@ -1,0 +1,21 @@
+{
+  "name": "lab",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.19.0",
+    "fs": "0.0.1-security",
+    "inquirer": "^6.2.2",
+    "path": "^0.12.7",
+    "requireg": "^0.2.1",
+    "util": "^0.11.1",
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {},
+  "description": ""
+}
