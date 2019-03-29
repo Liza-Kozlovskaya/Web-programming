@@ -3,6 +3,7 @@ const { prompt } = require('inquirer'); //работа с пользовател
 const fs = require('fs'); //модуль для работы с файлами
 const path = require('path'); //работа с путями к файлам и директориям
 const util = require('util');
+const uuid = require('uuid');
 
 /*Информация о программе */
 program
@@ -50,16 +51,6 @@ function findTodoIndex(id, todos) {
   return todos.findIndex((todo) => todo.id === id);
 }
 
-/*Номера заданий*/
-function guid() {
-  function createId() {
-    return Math.floor((1 + Math.random()) * 0x10000)
-      .toString(16)
-      .substring(1);
-  }
-  return createId();
-}
-
 /*Вывод информации*/
 function print(...args) {
   console.info(...args);
@@ -78,7 +69,7 @@ function createTodo(data) {
     comment: null,
     createdDate: new Date(),
     createdByUserId: ACCOUNT_ID,
-    id: guid(),
+    id: uuid(),
     isLiked: false,
     status: TODO_STATUS.OPEN,
     lastUpdateDate: new Date(),
@@ -92,7 +83,7 @@ function updateTodo(change, todo, status) {
     ...todo,
     ...change,
     ...status,
-    id: guid(),
+    id: uuid(),
     lastUpdateDate: new Date(),
     lastUpdateByUserId: ACCOUNT_ID,
     createdDate: new Date(),
@@ -187,16 +178,6 @@ const commentQuestions = [
   },
 ];
 
-/*Запрос ввода нового статуса */
-/*Изначальный статус: OPEN. Присваивается при создании */
-const statusQuestions = [
-    {
-        type: 'input',
-        name: 'status',
-        message: 'Enter status...'
-    },
-];
-
 /*Комманды*/
 program
     //создать запись//
@@ -240,15 +221,36 @@ program
       });
   });
 
+  //название статусов для пользователей
+const statusMap ={
+    open: TODO_STATUS.OPEN,
+    inprogress: TODO_STATUS.IN_PROGRESS,
+    done: TODO_STATUS.DONE,
+  };
+
 program
     //вывести список всех записей//
-  .command('list')
-  .alias('ls')
-  .description('List all TODOs')
-  .action(() => {
-    getAllTodos()
-    .then(print)
-  });
+    .command('list')
+    .description('list all Todos, can be filtered by --status option')
+    //фильтр тасков по статусу
+    .option('--status <status>')
+    .action(({status}) => {
+        const todos = getAllTodos();
+        if(!status){
+            todos.then((todos) => {print(todos)});
+        }
+        else{
+            if(status == 'open' || status == 'done' || status == 'inprogress') {
+                const parsedStatus = statusMap[status];
+                todos.then((data) => { print(data.filter(cur => cur.status == parsedStatus))});
+            }
+            else {
+                print("Invalid status");
+                return;
+            }
+        }
+        
+    });    
 
 program
     //Отметить задание как понравившееся//
@@ -275,17 +277,27 @@ program
       });
   });
 
-  program
-  //Изменение статуса задания//
-  .command('status <id>')
-  .description('Edit status TODO item')
-  .action((id) => {
-    prompt(statusQuestions)
-      .then(({ status }) => updateTodoItem(id, { status }))
-      .then(print)
-      .catch((e) => {
-        throw e;
-      });
+  //изменение статусов по id
+    program
+    .command('status <id> <status>')
+    .description('Update task status')
+    .action((id, status)=>
+    {
+      if(status == 'open' || status == 'done' || status == 'inprogress')
+        {
+            getAllTodos()
+                .then((todos) => {
+                    todos.forEach(element => { 
+                        if(element.id == id) 
+                        element.status = statusMap[status]; 
+                    })
+                    saveAllTodos(todos);
+                    updateTodoItem(id, {status})
+                });
+        }
+        else {
+            print("Invalid status.");
+        }
     });
 
 program.parse(process.argv);
